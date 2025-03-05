@@ -3,6 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def line(x):
+    return 3 * x + 2
+
+
 def sgn(x):
     if x < 0:
         return -1
@@ -10,10 +14,6 @@ def sgn(x):
         return 0
     else:
         return 1
-
-
-def line(x):
-    return 3 * x + 2
 
 
 class Perceptron:
@@ -27,8 +27,8 @@ class Perceptron:
         self.history_b = []
         self.history_pred = []
 
-    def train_one(self, x, y):
-        y_guess = self.predict_one(x)
+    def _train_one(self, x, y):
+        y_guess = self._predict_one(x)
         error = y - y_guess
         for i in range(self.dim):
             self.w[i] = self.w[i] + self.learning_rate * error * x[i]
@@ -37,20 +37,20 @@ class Perceptron:
     def train(self, x, y, epochs):
         for _ in range(epochs):
             for i in range(len(x)):
-                self.train_one(x[i], y[i])
+                self._train_one(x[i], y[i])
             if self.log_history:
                 self.history_w.append(self.w.copy())
                 self.history_b.append(self.b)
-                self.history_pred.append([self.predict_one(x_i) for x_i in x])
+                self.history_pred.append([self._predict_one(x_i) for x_i in x])
 
-    def predict_one(self, x):
+    def _predict_one(self, x):
         y_guess = self.b
         for i in range(self.dim):
             y_guess += x[i] * self.w[i]
         return sgn(y_guess)
 
     def predict(self, x):
-        return [self.predict_one(x_i) for x_i in x]
+        return [self._predict_one(x_i) for x_i in x]
 
 
 def main():
