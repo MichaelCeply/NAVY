@@ -19,7 +19,7 @@ def sgn(x):
 class Perceptron:
     def __init__(self, dim, learning_rate, log_history=False):
         self.dim = dim
-        self.w = [random.random() * 2 - 1] * dim
+        self.w = [random.random() * 2 - 1 for _ in range(dim)]
         self.b = random.random() * 2 - 1
         self.learning_rate = learning_rate
         self.log_history = log_history
@@ -54,7 +54,7 @@ class Perceptron:
 
 
 def main():
-    points = np.random.uniform(-10, 10, (500, 2))
+    points = np.random.uniform(-10, 10, (100, 2))
 
     y_train = []
     for point in points:
@@ -62,7 +62,7 @@ def main():
         y_train.append(sgn(y - line(x)))
 
     p = Perceptron(2, 0.0001, log_history=True)
-    p.train(points, y_train, 100)
+    p.train(points, y_train, 100    )
     y_pred = p.predict(points)
 
     accuracies = []
@@ -91,11 +91,17 @@ def main():
     axs[0, 0].grid(True)
 
     axs[0, 1].plot(x_vals, line(x_vals), color="black", label="y = 3x + 2")
+    if p.w[1] != 0:
+        y_vals = -(p.w[0] * x_vals + p.b) / p.w[1]
+        axs[0, 1].plot(
+            x_vals, y_vals, color="green", linestyle="--", label="Decision Boundary"
+        )
     axs[0, 1].set_xlim(-10, 10)
     axs[0, 1].set_ylim(-10, 10)
     axs[0, 1].set_xlabel("x")
     axs[0, 1].set_ylabel("y")
     axs[0, 1].set_title("Predicted Data")
+    axs[0, 1].legend()
     axs[0, 1].grid(True)
 
     history_w = np.array(p.history_w)
