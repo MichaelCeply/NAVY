@@ -33,6 +33,7 @@ def compare(x, y_train, y_pred):
 
 class Perceptron:
     def __init__(self, dim: int, name: str, learning_rate: float):
+        # Na začatku se váhy + bias nastaví na náhodné hodnoty v rozsahu (-1,1  )
         self.dim = dim
         self.w = [random.random() * 2 - 1 for _ in range(dim)]
         self.b = random.random() * 2 - 1
@@ -46,9 +47,12 @@ class Perceptron:
         self.history_output = []
 
     def activate(self, x: list) -> float:
+        # Suma násobků vstupů a jim odpovídajících vah, ke kterým je přičten bias
+        # ∑(x[i]*w[i]) + b
         output = self.b
         for i in range(self.dim):
             output += x[i] * self.w[i]
+        # Výsledek predikce je získán z aktivační funkce
         self.output = sigmoid(output)
         return self.output
 
@@ -57,6 +61,7 @@ class Perceptron:
 
 
 class Layer:
+    # Třída reprezentující jednu vrstvu v neuronové síti
     def __init__(self, num_perceptors, name, dim, learing_rate):
         self.perceptrons = [
             Perceptron(dim, f"{name}_p_{i}", learing_rate)
@@ -67,11 +72,6 @@ class Layer:
     def predict(self, x):
         return [perceptron.activate(x) for perceptron in self.perceptrons]
 
-    def backwards(self, errors):
-        for perceptron in self.perceptrons:
-            for i in range(perceptron.dim):
-                pass
-
     def __str__(self):
         per_str = "\n".join(str(per) for per in self.perceptrons)
         return f"{self.name}:\n{per_str}"
@@ -79,6 +79,7 @@ class Layer:
 
 class MLP:
     def __init__(self, dim, layer_sizes, learning_rate, log_history=False):
+        # Inicializace ANN podle architektury v layer_sizes
         self.dim = dim
         self.layers: list[Layer] = []
         for i in range(len(layer_sizes)):
@@ -93,6 +94,7 @@ class MLP:
     def train(self, x, y, epochs):
         self.train_data = x
         for epoch in range(epochs):
+            # Pro každý vstup je vypočítána chyba
             total_error = 0
             epoch_pred = []
             for x_i, y_i in zip(x, y):
@@ -103,13 +105,15 @@ class MLP:
                 y_pred = activations[-1]
                 epoch_pred.append(y_pred)
                 total_error += calculate_error(y_i, y_pred)
-
+                # Back propagation
+                # Pro výstupní vrstvu se delta vah spočítá jako rozdíl mezi vstupem a predikcí krát derivace aktivační funkce s predikcí
                 output_layer = self.layers[-1]
                 for k, perceptron in enumerate(output_layer.perceptrons):
                     perceptron.delta = (y_pred[k] - y_i[k]) * sigmoid_derivative(
                         y_pred[k]
                     )
-
+                # Pro skryté vrsty provádím back propagation odzadu(od výstupní vrstvy)
+                # deltu vah spočítáme jako součet součinů vah a delt, který vynásobíme derivací aktivační funkce s predikcí určeného neuronu
                 for i in range(len(self.layers) - 2, -1, -1):
                     current_layer = self.layers[i]
                     next_layer = self.layers[i + 1]
@@ -119,7 +123,7 @@ class MLP:
                             for next_p in next_layer.perceptrons
                         )
                         perceptron.delta = error * sigmoid_derivative(perceptron.output)
-
+                # Úprava parametrů na základě chyby, vstupu a delty
                 for i, layer in enumerate(self.layers):
                     inputs = activations[i]
                     for perceptron in layer.perceptrons:
@@ -128,7 +132,7 @@ class MLP:
                                 perceptron.learning_rate * perceptron.delta * inputs[k]
                             )
                         perceptron.b -= perceptron.learning_rate * perceptron.delta
-
+            # Ukládání historie paramatrů a výstupů pro vizualizaci
             self.total_error_history.append(total_error)
             self.prediction_history.append(epoch_pred)
             for layer in self.layers:
@@ -140,6 +144,7 @@ class MLP:
                 print(f"Epoch {epoch}, Total Error: {total_error}")
 
     def predict(self, x):
+        # Postupné predikování jednotlivých vrstev - predikce vrstvy 1 je vstupem pro vrstvu 2
         result = []
         for x_i in x:
             layer_input = x_i
@@ -149,6 +154,10 @@ class MLP:
         return result
 
     def visualize(self):
+        # Funkce pro vizalizaci učení
+        # Vlevo nahoře - vývoj součtu chyb v čase
+        # Vpravo nahoře - vývoj predikcí pro jednolivé trénovací data
+        # Vlevo dole - vývoj parametrů v jednotlivých epochách
         fig, axs = plt.subplots(2, 2, figsize=(16, 12))
 
         axs[0, 0].plot(self.total_error_history, label="Total Error")
@@ -171,7 +180,7 @@ class MLP:
                     history_w = np.array(perceptron.history_w)
                     axs[1, 0].plot(history_w[:, i], label=f"{perceptron.name}_w{i}")
                 axs[1, 0].plot(perceptron.history_b, label=f"{perceptron.name}_b")
-        axs[1, 0].set_title("Total error")
+        axs[1, 0].set_title("Weights and Biases")
         axs[1, 0].set_xlabel("Epoch")
         axs[1, 0].legend()
         axs[1, 0].grid(True)
@@ -194,7 +203,7 @@ def main():
     print(mlp)
     print("-" * NUM_OF_SEPARATORS)
 
-    mlp.train(x, y_train, 100_000)
+    mlp.train(x, y_train, 200_000)
     print("-" * NUM_OF_SEPARATORS + "\nPost-training\n" + "-" * NUM_OF_SEPARATORS)
     print(mlp)
     print("-" * NUM_OF_SEPARATORS)
