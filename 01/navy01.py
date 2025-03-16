@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 
 def line(x):
+    # Zde zmenit pro jinou funkci
     return 3 * x + 2
 
 

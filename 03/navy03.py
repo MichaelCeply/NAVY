@@ -21,46 +21,64 @@ def sgn(x):
 
 
 class HopfieldNetwork:
-    def __init__(self, num_neurons):
-        self.num_neurons = num_neurons
-        self.matrix = np.zeros((num_neurons**2, num_neurons**2))
+    def __init__(self, grid_size):
+        self.num_neurons = grid_size**2
+        self.matrix = np.zeros((self.num_neurons, self.num_neurons))
 
     def train(self, patterns):
+        # Naplneni matice nulami pri kazdem novem treninku
         self.matrix.fill(0)
         for pattern in patterns:
             pattern = np.array(pattern)
+            # Zamena nul za -1
             pattern[pattern == 0] = -1
-            pattern = pattern.reshape((self.num_neurons**2, 1))
+            # Prevod na 1D matici
+            pattern = pattern.reshape((self.num_neurons, 1))
+            # Maticovy soucit pro ziskani n^2 x n^2 matice vzoru
             w = pattern * pattern.T
-            w = w - np.eye(self.num_neurons**2)
+            # Odstraneni napojeni samo na sebe - odstraneni hodnot na diagonale
+            w = w - np.eye(self.num_neurons)
+            # Pridani k dalsim vzorum
             self.matrix += w
+        # Normalizace matice
         self.matrix /= len(patterns)
 
     def predict_synchronous(self, pattern, max_epoch=20):
-        pattern = np.array(pattern).reshape(self.num_neurons**2)
-        print(pattern)
+        # Prevod na 1D matici
+        pattern = np.array(pattern).reshape(self.num_neurons)
+        # Zamena nul za -1
         pattern[pattern == 0] = -1
         for epoch in range(max_epoch):
+            # Novy predikovany patern spocitany jako maticovy soucin
+            # matice vzoru a postupne opravovaneho paternu,
+            # ktery je prohnan funkci signum
             new_pattern = np.sign(self.matrix @ pattern)
+            # Predcasne ukonceni, pokud nedoslo ke zmene
             if np.array_equal(new_pattern, pattern):
                 break
+            # Nahrazeni celeho opravovaneho paternu novym paternem
             pattern = new_pattern
+        # Zamena -1 zpet na 0
         pattern[pattern == -1] = 0
-        print(pattern)
         return pattern
 
     def predict_asynchronous(self, pattern, max_epoch=20):
-        pattern = np.array(pattern).reshape(self.num_neurons**2)
-        print(pattern)
+        # Prevod na 1D matici
+        pattern = np.array(pattern).reshape(self.num_neurons)
+        # Zamena nul za -1
         pattern[pattern == 0] = -1
         for epoch in range(max_epoch):
-            for i in range(self.num_neurons**2):
+            for i in range(self.num_neurons):
+                # Postupne opravovani paternu pomoci skalarniho soucinu
+                # i-teho radku matice vzoru a opravovaneho vzoru.
+                # Vysledek opet prohnan funkci signum
                 pattern[i] = sgn(np.dot(self.matrix[i, :], pattern))
+        # Zamena -1 zpet na 0
         pattern[pattern == -1] = 0
-        print(pattern)
         return pattern
 
     def plot_weights(self):
+        # Vizualizace hodnot v matici vzoru
         plt.figure(figsize=(6, 5))
         w_mat = plt.imshow(self.matrix, cmap=cm.coolwarm)
         plt.colorbar(w_mat)
@@ -69,7 +87,7 @@ class HopfieldNetwork:
         plt.show()
 
     def restart(self):
-        self.matrix = np.zeros((self.num_neurons**2, self.num_neurons**2))
+        self.matrix = np.zeros((self.num_neurons, self.num_neurons))
 
 
 class GridApp:
