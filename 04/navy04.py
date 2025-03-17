@@ -1,3 +1,4 @@
+from matplotlib import pyplot as plt
 import numpy as np
 import tkinter as tk
 
@@ -96,6 +97,18 @@ class QLearningAgent(object):
 
         return path
 
+    def visualize(self):
+        actions = ["Up", "Down", "Left", "Right"]
+        fig, axes = plt.subplots(1, 4, figsize=(20, 5))
+
+        for i, ax in enumerate(axes):
+            cax = ax.matshow(self.q_matrix[i], cmap="plasma")
+            ax.set_title(f"Action: {actions[i]}")
+            plt.colorbar(cax, ax=ax)
+
+        plt.tight_layout()
+        plt.show()
+
 
 class GridApp:
     def __init__(self, master, grid_size):
@@ -111,16 +124,21 @@ class GridApp:
         self.control_frame = tk.Frame(self.master)
         self.control_frame.pack(side=tk.RIGHT, padx=10, pady=10)
 
-        self.agent = QLearningAgent(self.grid_size)
+        self.epochs_var = tk.IntVar(value=10000)
+        self.epsilon_var = tk.IntVar(value=0.1)
+
+        self.agent = QLearningAgent(self.grid_size, epsilon=0.5)
         self.mouse = (0, 0)
         self.cheese = (grid_size - 1, grid_size - 1)
-        self.walls = []
-        self.traps = []
+        self.walls = set()
+        self.traps = set()
         self.mouse_img = tk.PhotoImage(file="img/mouse.png")
         self.cheese_img = tk.PhotoImage(file="img/cheese.png")
         self.wall_img = tk.PhotoImage(file="img/wall.png")
         self.trap_img = tk.PhotoImage(file="img/trap.png")
+        self.white_img = tk.PhotoImage(file="img/white.png")
 
+        self.click_mode = None
         self.cell_size = 40
 
         self.create_grid()
@@ -128,7 +146,18 @@ class GridApp:
 
     def create_grid(self):
         for r in range(self.grid_size):
+            self.grid_frame.grid_rowconfigure(r, weight=1, minsize=self.cell_size)
             for c in range(self.grid_size):
+                self.grid_frame.grid_columnconfigure(
+                    c, weight=1, minsize=self.cell_size
+                )
+
+                cell_frame = tk.Frame(
+                    self.grid_frame, width=self.cell_size, height=self.cell_size
+                )
+                cell_frame.grid(row=r, column=c, sticky="nsew")
+                cell_frame.grid_propagate(False)  # Prevent resizing
+
                 if (r, c) == self.mouse:
                     image = self.mouse_img
                 elif (r, c) == self.cheese:
@@ -138,26 +167,39 @@ class GridApp:
                 elif (r, c) in self.traps:
                     image = self.trap_img
                 else:
-                    image = None
+                    image = self.white_img
 
                 button = tk.Button(
-                    self.grid_frame,
+                    cell_frame,
                     image=image,
-                    width=3,
-                    height=2,
                     command=lambda r=r, c=c: self.on_click(r, c),
-                    bg="white" if image is None else None,
-                    activebackground="white" if image is None else None,
+                    bg="white",
                 )
-
-                button.grid(row=r, column=c, padx=0, pady=0, sticky="nsew")
+                button.pack(expand=True, fill="both")
                 self.buttons[(r, c)] = button
 
-        for i in range(self.grid_size):
-            self.grid_frame.grid_rowconfigure(i, weight=1)
-            self.grid_frame.grid_columnconfigure(i, weight=1)
-
     def create_controls(self):
+        epochs_label = tk.Label(self.control_frame, text="Select epochs:")
+        epochs_label.pack(pady=5)
+
+        epochs_options = [1000, 10000, 100000]
+        epochs_menu = tk.OptionMenu(
+            self.control_frame, self.epochs_var, *epochs_options
+        )
+        epochs_menu.pack(pady=5, fill=tk.X)
+
+        self.epsilon_scale = tk.Scale(
+            self.control_frame,
+            variable=self.epsilon_var,
+            from_=0.0,
+            to=1,
+            digits=2,
+            resolution=0.1,
+            orient=tk.HORIZONTAL,
+            label="Set epsilon",
+        )
+        self.epsilon_scale.pack(pady=5)
+
         learn_btn = tk.Button(
             self.control_frame,
             text="Start learning",
@@ -177,7 +219,7 @@ class GridApp:
         mouse_btn = tk.Button(
             self.control_frame,
             text="Select a mouse",
-            command=self.learn,
+            command=lambda: self.set_mode("mouse"),
             bg="yellow",
         )
         mouse_btn.pack(pady=5, fill=tk.X)
@@ -185,7 +227,7 @@ class GridApp:
         trap_btn = tk.Button(
             self.control_frame,
             text="Select a trap",
-            command=self.learn,
+            command=lambda: self.set_mode("trap"),
             bg="yellow",
         )
         trap_btn.pack(pady=5, fill=tk.X)
@@ -193,7 +235,7 @@ class GridApp:
         wall_btn = tk.Button(
             self.control_frame,
             text="Select a wall",
-            command=self.learn,
+            command=lambda: self.set_mode("wall"),
             bg="yellow",
         )
         wall_btn.pack(pady=5, fill=tk.X)
@@ -201,7 +243,7 @@ class GridApp:
         cheese_btn = tk.Button(
             self.control_frame,
             text="Select a cheese",
-            command=self.learn,
+            command=lambda: self.set_mode("cheese"),
             bg="yellow",
         )
         cheese_btn.pack(pady=5, fill=tk.X)
@@ -209,7 +251,7 @@ class GridApp:
         remove_btn = tk.Button(
             self.control_frame,
             text="Clear a tile",
-            command=self.learn,
+            command=lambda: self.set_mode("clear"),
             bg="red",
         )
         remove_btn.pack(pady=5, fill=tk.X)
@@ -222,32 +264,66 @@ class GridApp:
         )
         clear_btn.pack(pady=5, fill=tk.X)
 
+        visualize_btn = tk.Button(
+            self.control_frame,
+            text="Visualize Q-matrix",
+            command=self.visualize,
+            bg="blue",
+        )
+        visualize_btn.pack(pady=5, fill=tk.X)
+
     def on_click(self, r, c):
-        print(f"Button at ({r}, {c}) clicked!")
+        match self.click_mode:
+            case "mouse":
+                self.mouse = (r, c)
+            case "wall":
+                self.walls.add((r, c))
+            case "trap":
+                self.traps.add((r, c))
+            case "cheese":
+                self.cheese = (r, c)
+            case "clear":
+                if (r, c) == self.mouse:
+                    self.mouse = (0, 0)
+                elif (r, c) == self.cheese:
+                    self.cheese = (self.grid_size - 1, self.grid_size - 1)
+                elif (r, c) in self.walls:
+                    self.walls.remove((r, c))
+                elif (r, c) in self.traps:
+                    self.traps.remove((r, c))
+        self.update_grid()
 
     def learn(self):
+        self.agent.epsilon = self.epsilon_var.get()
         self.agent.start = self.mouse
         self.agent.cheese = self.cheese
         self.agent.walls = self.walls
         self.agent.traps = self.traps
-        self.agent.train(10_000)
+        self.agent.train(self.epochs_var.get())
 
     def find(self):
         path = self.agent.predict()
-        self.animate_path(path, 0)
+        if path[-1] == self.cheese:
+            self.animate_path(path, 0)
 
     def animate_path(self, path, index):
         if index < len(path):
             self.mouse = path[index]
             self.update_grid()
-            self.master.after(500, self.animate_path, path, index + 1)
+            self.master.after(250, self.animate_path, path, index + 1)
+
+    def set_mode(self, mode):
+        self.click_mode = mode
 
     def reset(self):
         self.mouse = (0, 0)
         self.cheese = (self.grid_size - 1, self.grid_size - 1)
-        self.walls = []
-        self.traps = []
+        self.walls = set()
+        self.traps = set()
         self.update_grid()
+
+    def visualize(self):
+        self.agent.visualize()
 
     def update_grid(self):
         for r in range(self.grid_size):
@@ -262,7 +338,7 @@ class GridApp:
                 elif (r, c) in self.traps:
                     button.configure(image=self.trap_img, bg="white")
                 else:
-                    button.configure(image="", bg="white")
+                    button.configure(image=self.white_img, bg="white")
 
 
 def main():
