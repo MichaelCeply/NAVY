@@ -14,53 +14,76 @@ class QLearningAgent(object):
         start=(0, 0),
         walls=[],
         traps=[],
+        epsilon_decay=False,
     ):
+        # Velikost herni plochy
         self.grid_size = grid_size
+        # Naplneni pameti agenta nulami
         self.q_matrix = np.zeros((4, grid_size, grid_size))
+        # Mozne akce agenta
         self.actions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        # Rychlost uceni
         self.learning_rate = learning_rate
+        # Discount factor - urcuje jak moc agent dava vahu soucasnym odmenam pred budoucimi
         self.gamma = gamma
+        # Exploration rate - mira jak moc bude agent prozkoumavat namisto vybirani nejlepsi moznosti
         self.epsilon = epsilon
+        # Pozice startu,syra,zdi a pasti
         self.start = start
         self.cheese = cheese
         self.walls = walls
         self.traps = traps
+        # nastaveni pro snizovani epsilonu aby se snizila explorace
+        self.epsilon_decay = epsilon_decay
 
     def train(self, num_epochs):
-        for epoch in range(num_epochs):
+        # Trenovani na poctu epoch
+        for _ in range(num_epochs):
+            # nastaveni soucasne pozice na startovni pozici na zacatku treninku
             state = self.start
             steps = 0
-            while state != self.cheese and steps < 100:
+            # hledani dokud se nenajde syr nebo neubehne nejaky pocet kroku pro pripad zacykleni (napr neni mozna cesta k syru)
+            while state != self.cheese and steps < 1000:
+                # nahodny vyber mezi exploraci a nejlepsi moznosti
                 if np.random.rand() < self.epsilon:
                     action = np.random.choice(4)
                 else:
                     action = np.argmax(self.q_matrix[:, state[0], state[1]])
-
+                # vypocet nove pozice
                 new_state = (
                     state[0] + self.actions[action][0],
                     state[1] + self.actions[action][1],
                 )
-
+                # kontrola zda agent nevyjel z herni plochy - pokud ano vrati se zpet na puvodni pozici a dostane pokutu 100
                 if not (
                     0 <= new_state[0] < self.grid_size
                     and 0 <= new_state[1] < self.grid_size
                 ):
                     reward = -100
                     new_state = state
+                # kontrola kolize se zdi - funguje stejne jako vyjeti z pole
                 elif new_state in self.walls:
                     reward = -100
                     new_state = state
+                # kontrolo vstupu do pasti - udeli se pokuta 100, prepocita se q matrix pro akci a pozici a ukonci se generace
                 elif new_state in self.traps:
                     reward = -100
                     self.q_matrix[action, state[0], state[1]] += self.learning_rate * (
-                        reward - self.q_matrix[action, state[0], state[1]]
+                        reward
+                        + self.gamma
+                        * np.max(self.q_matrix[:, new_state[0], new_state[1]])
+                        - self.q_matrix[action, state[0], state[1]]
                     )
+
                     break
+                # nalezeni syru - odmena +100
                 elif new_state == self.cheese:
                     reward = 100
+                # krok na volne pole - zaporna hodnota pro minimalizaci poctu kroku
                 else:
                     reward = -1
-
+                # prepocitani q matice - k pozici rovne pozici agenta v q matice rovne zvolene akci se pricte max z
+                # q matice pro vsechy akce
                 old_state = state
                 self.q_matrix[
                     action, old_state[0], old_state[1]
@@ -69,21 +92,25 @@ class QLearningAgent(object):
                     + self.gamma * np.max(self.q_matrix[:, new_state[0], new_state[1]])
                     - self.q_matrix[action, old_state[0], old_state[1]]
                 )
-
+                # aktualizace stavu
                 state = new_state
                 steps += 1
+                # snizovani epsilonu pro snizovani explorace
+                if self.epsilon_decay:
+                    self.epsilon *= 0.99
 
     def predict(self):
         state = self.start
         path = [state]
         steps = 0
-
+        # hledani syru pomoci vybirani nejlepsi akce pro danou pozici
         while state != self.cheese and steps < 100:
             action = np.argmax(self.q_matrix[:, state[0], state[1]])
             new_state = (
                 state[0] + self.actions[action][0],
                 state[1] + self.actions[action][1],
             )
+            # kontorola kolize se zdi a vyjetim z gridu
             if not (
                 0 <= new_state[0] < self.grid_size
                 and 0 <= new_state[1] < self.grid_size
@@ -98,14 +125,22 @@ class QLearningAgent(object):
         return path
 
     def visualize(self):
+        # vizualizace q matrixu pro kazdou akci
         actions = ["Up", "Down", "Left", "Right"]
-        fig, axes = plt.subplots(1, 4, figsize=(20, 5))
+        vmin = np.min(self.q_matrix)
+        vmax = np.max(self.q_matrix)
 
+        _, axes = plt.subplots(1, 4, figsize=(20, 5))
         for i, ax in enumerate(axes):
-            cax = ax.matshow(self.q_matrix[i], cmap="plasma")
+            cax = ax.imshow(
+                self.q_matrix[i],
+                cmap="plasma",
+                interpolation="nearest",
+                vmin=vmin,
+                vmax=vmax,
+            )
             ax.set_title(f"Action: {actions[i]}")
             plt.colorbar(cax, ax=ax)
-
         plt.tight_layout()
         plt.show()
 
@@ -114,7 +149,6 @@ class GridApp:
     def __init__(self, master, grid_size):
         self.master = master
         self.grid_size = grid_size
-        self.grid_data = np.zeros((self.grid_size, self.grid_size), dtype="int32")
 
         self.buttons = {}
 
