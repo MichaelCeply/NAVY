@@ -40,10 +40,8 @@ class HopfieldNetwork:
             w = w - np.eye(self.num_neurons)
             # Pridani k dalsim vzorum
             self.matrix += w
-        # Normalizace matice
-        self.matrix /= len(patterns)
 
-    def predict_synchronous(self, pattern, max_epoch=20):
+    def predict_synchronous(self, pattern, max_epoch=50):
         # Prevod na 1D matici
         pattern = np.array(pattern).reshape(self.num_neurons)
         # Zamena nul za -1
@@ -62,7 +60,7 @@ class HopfieldNetwork:
         pattern[pattern == -1] = 0
         return pattern
 
-    def predict_asynchronous(self, pattern, max_epoch=20):
+    def predict_asynchronous(self, pattern, max_epoch=50):
         # Prevod na 1D matici
         pattern = np.array(pattern).reshape(self.num_neurons)
         # Zamena nul za -1
@@ -167,7 +165,8 @@ class GridApp:
         current_color = button["bg"]
         new_color = "white" if current_color == "black" else "black"
         button.config(bg=new_color, activebackground=new_color)
-        self.grid_data[r, c] = 1 if self.grid_data[r, c] == 0 else 0
+        self.grid_data[r][c] = 1 if self.grid_data[r][c] == 0 else 0
+        self.update_grid()
 
     def show_pattern(self, value=None):
         self.grid_data = load_grid(f"{self.path}/{self.clicked.get()}.txt")
@@ -219,5 +218,5 @@ class GridApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = GridApp(root, 7)
+    app = GridApp(root, 5)
     root.mainloop()
