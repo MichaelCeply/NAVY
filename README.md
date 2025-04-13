@@ -125,3 +125,20 @@ Implemented GUI in Tk with $N \times N$ grid, representing playing area. One mou
 Example of playground creation and cheese finding.
 ![Q-matrix](img/04.png)
 Q-matrix for learned agent for playground above.
+
+## 06: L-System
+
+### Task:
+
+The L-system (Lindenmayer system) is a system defined by its axiom formula, rewritten by
+each rule that can be rotated at a specific angle. Brackets can be used for creating a
+checkpoint to which the position will be returned after the closing bracket is met.
+
+### Solution:
+
+Implemented a recursive L‑System generator where the initial axiom is expanded by applying the production rule for a given number of iterations. The interpretation of the generated string is done by a function that computes new drawing coordinates by processing each command ("F", "+", "-", "[", "]") and handling branchings using a stack. A simple GUI built with Tkinter allows users to input parameters and view the generated fractal pattern. Matplotlib is used for the graphical rendering.
+
+### Visualization:
+
+![Graph](img/06.png)
+Example of rule _FF+[+F-F-F]-[-F+F+F]_ with 4 iterations.
