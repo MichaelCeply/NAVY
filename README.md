@@ -126,6 +126,60 @@ Example of playground creation and cheese finding.
 ![Q-matrix](img/04.png)
 Q-matrix for learned agent for playground above.
 
+## 08: CartPole - Optimized Q-learning
+
+### Task:
+
+Solve the CartPole balancing task using optimized Q-learning with a discretized state space. The agent should learn to keep the pole balanced for as long as possible.
+
+### Solution:
+
+Implemented Q-learning agent using discretized state space to reduce the infinite continuous space into manageable buckets. Special care was taken to refine discretization around the critical pole angle close to vertical position. The Q-table was initialized optimistically to encourage exploration. A shaped reward function was introduced penalizing large pole angles and proximity to the edges. Training included early stopping based on stability tests. The best model was selected based on the average reward across multiple test episodes.
+
+Key improvements:
+
+- Adaptive epsilon and learning rate decay.
+- Reward shaping penalizing unsafe states.
+- Optimistic Q-table initialization.
+- Stability check requiring agent to balance for multiple episodes.
+
+### Training output:
+
+Training process showing evolution of agent performance during learning:
+
+```bash
+Training round 1/5
+Ep 0: Reward = 24.0, Max = 24.0
+Ep 100: Reward = 96.0, Max = 196.0
+Ep 200: Reward = 230.0, Max = 423.0
+Ep 300: Reward = 512.0, Max = 782.0
+...
+Good solution found in 472 with reward 935.0
+Stable model found!
+Average test reward: 920.5
+New best reward: 920.5
+```
+
+Average reward for best model:
+
+```bash
+Best avg reward: 1139.9
+```
+
+### Visualization:
+
+During visualization, the agent consistently balances the pole for hundreds of steps.
+
+```bash
+Visualization of trained model!
+
+Test 1: Steps: 1000.0
+Test 2: Steps: 1000.0
+Test 3: Steps: 71.0
+Test 4: Steps: 1000.0
+Test 5: Steps: 1000.0
+```
+
 ## 06: L-System
 
 ### Task:
@@ -142,3 +196,23 @@ Implemented a recursive L‑System generator where the initial axiom is expanded
 
 ![Graph](img/06.png)
 Example of rule _FF+[+F-F-F]-[-F+F+F]_ with 4 iterations.
+
+## 08: Fractal Explorer
+
+### Task:
+
+Create an interactive explorer for Mandelbrot and Julia fractals, allowing the user to zoom into specific regions and switch between both fractals.
+
+### Solution:
+
+Implemented an interactive fractal explorer using matplotlib. Application allows switching between Mandelbrot set and Julia set with a fixed constant _c = -0.7 + 0.27i_. View can be zoomed into by clicking and dragging on the plot. Upon switching fractal type, the view is reset to default settings. Fractals are computed using a fixed maximum of 100 iterations without increasing iterations during runtime.
+
+### Visualization:
+
+![Graph](img/08.png)
+
+- Full window: Current fractal (Mandelbrot) with interactive zoom
+- Controls on bottom:
+  - Left: Switch between Mandelbrot and Julia
+  - Right: Reset view to default
+- Zoom: Click and drag a rectangle on the fractal to zoom into selected region
