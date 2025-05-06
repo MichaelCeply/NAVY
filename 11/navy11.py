@@ -3,7 +3,7 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-# pocatecni parametry kyvadel - delky, hmotnosti, uhly a uhlove rychlosti
+# pocatecni randomizovane parametry kyvadel - delky, hmotnosti, uhly a uhlove rychlosti
 g = 10
 l1 = np.random.rand() * 2
 l2 = 2 - l1
