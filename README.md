@@ -216,3 +216,71 @@ Implemented an interactive fractal explorer using matplotlib. Application allows
   - Left: Switch between Mandelbrot and Julia
   - Right: Reset view to default
 - Zoom: Click and drag a rectangle on the fractal to zoom into selected region
+
+# 10: Theory of chaos: Logistic map, chaotic numbers and their prediction
+
+### Task:
+
+Generate a bifurcation diagram of the logistic map defined by the recurrence relation $x_{n+1} = a \cdot x_n \cdot (1 - x_n)$
+
+Then, use a neural network to predict the evolution of the system. Compare the real bifurcation diagram with the predicted one.
+
+### Solution:
+
+- Generated 100,000 samples of pairs $[a, x_n]$ and computed corresponding $x_{n+1}$ as training targets.
+- Built a feed-forward neural network with two hidden layers (64 neurons each, `tanh` activation).
+- Trained using Mean Squared Error loss and Adam optimizer.
+
+### Visualization:
+
+![Graph](img/10.png)
+
+- **Left**: Bifurcation diagram calculated using logistic map formula.
+- **Right**: Predicted bifurcation diagram using the neural network.
+
+# 11: Double pendulum and chaotic motion
+
+### Task:
+
+Simulate the chaotic behavior of a double pendulum.
+
+### Solution:
+
+- The system consists of two masses connected by two massless rods.
+- Masses, lenghts and angles are randomized on start.
+- Lagrangian mechanics is used to derive equations of motion based on potential and kinetic energy.
+- Differential equations are solved numerically using `odeint` from `scipy.integrate`.
+
+### Visualization:
+
+![Graph](img/11.gif)
+
+- **Blue** trail: recent trajectory of the second pendulum mass
+
+# 12: Cellular automata - forest fire algorithm
+
+### Task:
+
+Simulate the spread of a forest fire using a cellular automaton model.
+
+### Solution:
+
+- The forest is represented as a 2D grid where each cell can be in one of four states:
+  - Ground
+  - Tree
+  - Fire
+  - Ash
+- At each iteration:
+  - Ground can turn into Tree with probability `p`
+  - Trees can spontaneously ignite with a probability `f`.
+  - Trees adjacent to burning trees will catch fire.
+  - Burning trees turn into ash.
+  - Ash can turn back into ground, with a higher probability of spawning a new tree due to fertile soil.
+- The simulation uses either the Neumann or Moore neighborhood to determine adjacency.
+
+### Visualization:
+
+![Graph](img/12.gif)
+
+- **Left**: Forest grid showing the current state of each cell.
+- **Right**: Pie chart indicating the distribution of states in the forest at the current iteration.
